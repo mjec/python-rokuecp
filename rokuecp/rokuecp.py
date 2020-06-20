@@ -1,6 +1,7 @@
 """Asynchronous Python client for Roku."""
 import asyncio
 from collections import OrderedDict
+from multidict import MultiDict
 from socket import gaierror as SocketGIAError
 from typing import Any, List, Mapping, Optional
 from urllib.parse import quote_plus
@@ -210,6 +211,34 @@ class Roku:
     async def tune(self, channel: str) -> None:
         """Change the channel on TV tuner."""
         await self.launch("tvinput.dtv", {"ch": channel})
+
+    async def search(
+        self,
+        keyword: str,
+        *,
+        type_of_content: str = None,
+        provider_ids: List[int] = None,
+        provider_names: List[str] = None,
+        launch: bool = False,
+    ) -> None:
+        """Perform a search for content."""
+        params = MultiDict({"keyword": keyword})
+
+        if type_of_content:
+            params["type"] = type_of_content
+
+        if provider_ids:
+            for provider_id in provider_ids:
+                params.add('provider-id', str(provider_id))
+
+        if provider_names:
+            for provider_name in provider_names:
+                params.add('provider', provider_name)
+
+        if launch:
+            params["launch"] = "true"
+
+        await self._request("search/browse", method="POST", params=params)
 
     async def _get_active_app(self) -> OrderedDict:
         """Retrieve active app for updates."""
